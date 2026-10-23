@@ -1,0 +1,21 @@
+order_date,region,category,product,quantity,unit_cost,unit_price,sales_channel,revenue,profit
+2026-01-05,North,Electronics,Wireless Mouse,25,18.5,29.99,Online,749.75,287.25
+2026-01-07,South,Home,Desk Lamp,12,14.0,24.99,Retail,299.88,131.88
+2026-01-10,East,Electronics,Keyboard,18,22.0,39.99,Online,719.82,323.82
+2026-01-12,West,Office,Notebook Pack,40,3.2,7.5,Retail,300.0,172.0
+2026-01-15,North,Home,Water Bottle,30,5.5,12.99,Online,389.7,224.7
+2026-01-18,South,Electronics,USB-C Hub,10,19.0,34.99,Online,349.9,159.9
+2026-01-21,East,Office,Pen Set,35,2.1,5.99,Retail,209.65,136.15
+2026-01-24,West,Electronics,Webcam,8,28.0,49.99,Online,399.92,175.92
+2026-02-02,North,Office,Desk Organizer,15,8.0,16.99,Retail,254.85,134.85
+2026-02-05,South,Home,Coffee Mug,24,4.25,9.99,Online,239.76,137.76
+2026-02-08,East,Electronics,Headphones,11,24.0,44.99,Online,494.89,230.89
+2026-02-11,West,Office,Sticky Notes,50,1.2,3.49,Retail,174.5,114.5
+2026-02-14,North,Electronics,Monitor Stand,9,17.0,32.99,Online,296.91,143.91
+2026-02-17,South,Office,File Folder,28,1.8,4.99,Retail,139.72,89.32
+2026-02-20,East,Home,Storage Box,16,6.5,13.99,Online,223.84,119.84
+2026-02-23,West,Electronics,Bluetooth Speaker,7,21.0,39.99,Online,279.93,132.93
+2026-03-03,North,Home,LED Strip,14,7.0,15.99,Online,223.86,125.86
+2026-03-06,South,Electronics,Laptop Stand,13,16.0,29.99,Retail,389.87,181.87
+2026-03-09,East,Office,Printer Paper,22,4.5,8.99,Retail,197.78,98.78
+2026-03-12,West,Home,Wall Clock,10,9.0,19.99,Online,199.9,109.9

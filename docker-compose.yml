@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Persistence Database
+  db:
+    image: postgres:16-alpine
+    container_name: datapilot-db
+    environment:
+      POSTGRES_USER: datapilot
+      POSTGRES_PASSWORD: datapilot_password
+      POSTGRES_DB: datapilot_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datapilot -d datapilot_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend Analytics & LangGraph Agent
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: datapilot-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://datapilot:datapilot_password@db:5432/datapilot_db
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:80"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+
+  # React Frontend Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: datapilot-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
