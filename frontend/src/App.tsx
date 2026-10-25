@@ -9,7 +9,9 @@ import {
   fetchReport,
   fetchUserProfile,
 } from './api'
-import { Navbar } from './components/Navbar'
+import { TopHeader } from './components/TopHeader'
+import { SidebarDock } from './components/SidebarDock'
+import { BusinessDashboard } from './components/BusinessDashboard'
 import { UploadSection } from './components/UploadSection'
 import { KPIOverview } from './components/KPIOverview'
 import { DataPreviewTable } from './components/DataPreviewTable'
@@ -22,16 +24,22 @@ import { PricingPage } from './pages/PricingPage'
 import { PrivacyPage } from './pages/PrivacyPage'
 import { ContactPage } from './pages/ContactPage'
 import {
-  MessageSquare,
-  Table,
-  Wand2,
   AlertCircle,
+  ArrowRight,
+  Sun,
+  Moon,
 } from 'lucide-react'
 
 export const App: React.FC = () => {
-  // Navigation State: 'landing' | 'workspace' | 'pricing' | 'privacy' | 'contact'
+  // Theme state: 'dark' (AgentAnalyst) | 'light' (SheetWise)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('datapilot_theme') as 'dark' | 'light') || 'dark'
+  })
+
+  // Navigation State
   const [currentView, setCurrentView] = useState<string>('workspace')
-  const [activeTab, setActiveTab] = useState<'chat' | 'preview' | 'clean'>('chat')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'preview' | 'clean' | 'report'>('dashboard')
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false)
 
   // Dataset & Analytics State
   const [datasetId, setDatasetId] = useState<string | null>(null)
@@ -52,9 +60,19 @@ export const App: React.FC = () => {
   const [isReportOpen, setIsReportOpen] = useState<boolean>(false)
   const [reportData, setReportData] = useState<any>(null)
 
-  // Load user profile on mount
+  // Apply theme to document
   useEffect(() => {
-    fetchUserProfile().then(u => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('datapilot_theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+  }
+
+  // Load user profile & initial sample dataset on mount
+  useEffect(() => {
+    fetchUserProfile().then((u) => {
       if (u) setUser(u)
     })
     handleLoadSample('csv')
@@ -112,7 +130,6 @@ export const App: React.FC = () => {
     }
   }
 
-
   const handleClean = async (operations: any[]) => {
     if (!datasetId) return
     setIsCleaning(true)
@@ -136,7 +153,7 @@ export const App: React.FC = () => {
       content: msgText,
       created_at: new Date().toISOString(),
     }
-    setMessages(prev => [...prev, userMsg])
+    setMessages((prev) => [...prev, userMsg])
     setIsLoading(true)
     setErrorMsg(null)
 
@@ -152,7 +169,7 @@ export const App: React.FC = () => {
         rag_sources: res.rag_sources,
         created_at: new Date().toISOString(),
       }
-      setMessages(prev => [...prev, assistantMsg])
+      setMessages((prev) => [...prev, assistantMsg])
     } catch (err: any) {
       setErrorMsg(err.message || 'Agent failed to respond')
     } finally {
@@ -180,216 +197,341 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Top Navigation */}
-      <Navbar
-        onLoadSample={handleLoadSample}
-        isLoading={isLoading}
-        hasDataset={!!datasetId}
-        filename={filename}
-        activeView={currentView}
-        onNavigate={setCurrentView}
-        user={user}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        onLogout={handleLogout}
-        onOpenReport={handleOpenReport}
-      />
-
-      {/* Main Content Router */}
-      <main style={{ maxWidth: '1240px', width: '100%', margin: '0 auto', padding: '24px 20px', flex: 1 }}>
-        {/* Error Alert */}
-        {errorMsg && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 18px',
-            borderRadius: 'var(--radius-md)',
-            background: 'rgba(244, 63, 94, 0.15)',
-            border: '1px solid rgba(244, 63, 94, 0.3)',
-            color: '#f43f5e',
-            fontSize: '0.85rem',
-            marginBottom: '20px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertCircle size={18} />
-              <span>{errorMsg}</span>
-            </div>
-            <button
-              onClick={() => setErrorMsg(null)}
-              style={{ background: 'transparent', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '1rem' }}
-            >
-              ×
-            </button>
-          </div>
-        )}
-
-        {/* View 1: Marketing Landing Page */}
-        {currentView === 'landing' && (
-          <LandingPage
-            onLaunchWorkspace={() => setCurrentView('workspace')}
-            onExploreDemo={() => {
-              handleLoadSample('csv')
-              setCurrentView('workspace')
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-app)' }}>
+      {/* If viewing marketing pages, render top promotional header */}
+      {currentView !== 'workspace' ? (
+        <>
+          <header
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 28px',
+              borderBottom: '1px solid var(--border-subtle)',
+              background: 'var(--bg-topbar)',
+              backdropFilter: 'blur(16px)',
+              position: 'sticky',
+              top: 0,
+              zIndex: 50,
             }}
-          />
-        )}
+          >
+            {/* Brand Logo */}
+            <div
+              onClick={() => setCurrentView('landing')}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            >
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 16px rgba(79, 70, 229, 0.45)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '1.15rem',
+                }}
+              >
+                A
+              </div>
+              <div>
+                <span style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
+                  Agent<span style={{ color: 'var(--accent-primary)' }}>Analyst</span>
+                </span>
+                <span
+                  style={{
+                    marginLeft: '8px',
+                    fontSize: '0.65rem',
+                    fontWeight: 600,
+                    padding: '2px 6px',
+                    borderRadius: '999px',
+                    background: 'var(--bg-active)',
+                    color: 'var(--accent-primary)',
+                  }}
+                >
+                  SheetWise AI
+                </span>
+              </div>
+            </div>
 
-        {/* View 2: Pricing Page */}
-        {currentView === 'pricing' && (
-          <PricingPage
-            currentPlan={user?.plan_tier || 'free'}
-            onSelectPlan={(planId) => {
-              if (!user) {
-                setIsAuthOpen(true)
+            {/* Links */}
+            <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => setCurrentView('landing')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  color: currentView === 'landing' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  fontWeight: currentView === 'landing' ? 600 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Product
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView('workspace')
+                  setActiveTab('dashboard')
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  color: 'var(--text-secondary)',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Dashboard Builder
+              </button>
+              <button
+                onClick={() => setCurrentView('pricing')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  color: currentView === 'pricing' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  fontWeight: currentView === 'pricing' ? 600 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Pricing
+              </button>
+              <button
+                onClick={() => setCurrentView('privacy')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  color: currentView === 'privacy' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  fontWeight: currentView === 'privacy' ? 600 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Security
+              </button>
+              <button
+                onClick={() => setCurrentView('contact')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  color: currentView === 'contact' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  fontWeight: currentView === 'contact' ? 600 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                Contact
+              </button>
+            </nav>
+
+            {/* CTAs */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                onClick={toggleTheme}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                {theme === 'dark' ? <Sun size={15} color="#fbbf24" /> : <Moon size={15} color="#4f46e5" />}
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentView('workspace')
+                  setActiveTab('dashboard')
+                }}
+                className="btn-primary"
+                style={{ fontSize: '0.84rem', padding: '8px 16px' }}
+              >
+                <span>Launch App</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </header>
+
+          <main style={{ maxWidth: '1240px', width: '100%', margin: '0 auto', padding: '24px 20px', flex: 1 }}>
+            {currentView === 'landing' && (
+              <LandingPage
+                onLaunchWorkspace={() => {
+                  setCurrentView('workspace')
+                  setActiveTab('dashboard')
+                }}
+                onExploreDemo={() => {
+                  handleLoadSample('csv')
+                  setCurrentView('workspace')
+                  setActiveTab('dashboard')
+                }}
+              />
+            )}
+            {currentView === 'pricing' && (
+              <PricingPage
+                currentPlan={user?.plan_tier || 'free'}
+                onSelectPlan={() => setIsAuthOpen(true)}
+              />
+            )}
+            {currentView === 'privacy' && <PrivacyPage />}
+            {currentView === 'contact' && <ContactPage />}
+          </main>
+        </>
+      ) : (
+        /* Workspace Dual Layout: SidebarDock + TopHeader + Dashboard Canvas */
+        <div style={{ display: 'flex', flex: 1, minHeight: '100vh', overflow: 'hidden' }}>
+          {/* Left Dock (Image 1 & 2) */}
+          <SidebarDock
+            currentTab={activeTab}
+            onChangeTab={(t) => {
+              if (t === 'report') {
+                handleOpenReport()
               } else {
-                fetch('/api/auth/upgrade', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('datapilot_token')}`,
-                  },
-                  body: JSON.stringify({ plan_tier: planId }),
-                }).then(() => fetchUserProfile().then(setUser))
+                setActiveTab(t)
               }
             }}
+            currentView={currentView}
+            onNavigateView={setCurrentView}
+            onOpenUpgrade={() => setCurrentView('pricing')}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           />
-        )}
 
-        {/* View 3: Privacy Page */}
-        {currentView === 'privacy' && <PrivacyPage />}
-
-        {/* View 4: Contact Page */}
-        {currentView === 'contact' && <ContactPage />}
-
-        {/* View 5: Authenticated Analytics Workspace */}
-        {currentView === 'workspace' && (
-          <>
-            <UploadSection
-              onFileUpload={handleFileUpload}
+          {/* Right Main Content Area */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', minWidth: 0 }}>
+            {/* Top Header */}
+            <TopHeader
+              theme={theme}
+              onToggleTheme={toggleTheme}
               onLoadSample={handleLoadSample}
-              isLoading={isLoading}
-              currentFilename={filename}
-              availableSheets={availableSheets}
-              selectedSheet={selectedSheet}
-              onSelectSheet={handleSelectSheet}
+              onOpenReport={handleOpenReport}
+              user={user}
+              onOpenAuth={() => setIsAuthOpen(true)}
+              onLogout={handleLogout}
+              onSearchQuery={(q) => {
+                setActiveTab('chat')
+                handleSendMessage(q)
+              }}
             />
 
-            {profile && (
-              <>
-                <KPIOverview
-                  profile={profile}
-                  onQuickCleanDuplicates={() => handleClean([{ op: 'drop_duplicates' }])}
-                  isCleaning={isCleaning}
-                />
-
-                {/* Navigation Tabs */}
-                <div style={{
-                  display: 'flex',
-                  gap: '8px',
-                  borderBottom: '1px solid var(--border-subtle)',
-                  marginBottom: '20px',
-                  paddingBottom: '2px',
-                }}>
+            {/* Main Canvas */}
+            <main style={{ padding: '20px 24px', flex: 1, maxWidth: '1600px', width: '100%', margin: '0 auto' }}>
+              {/* Error Banner */}
+              {errorMsg && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 18px',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(244, 63, 94, 0.12)',
+                    border: '1px solid rgba(244, 63, 94, 0.25)',
+                    color: 'var(--accent-rose)',
+                    fontSize: '0.85rem',
+                    marginBottom: '18px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertCircle size={18} />
+                    <span>{errorMsg}</span>
+                  </div>
                   <button
-                    onClick={() => setActiveTab('chat')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '10px 18px',
-                      background: 'transparent',
-                      border: 'none',
-                      borderBottom: `2px solid ${activeTab === 'chat' ? 'var(--accent-primary)' : 'transparent'}`,
-                      color: activeTab === 'chat' ? 'var(--text-primary)' : 'var(--text-muted)',
-                      fontWeight: activeTab === 'chat' ? 600 : 500,
-                      fontSize: '0.9rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
+                    onClick={() => setErrorMsg(null)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-rose)', cursor: 'pointer', fontSize: '1.1rem' }}
                   >
-                    <MessageSquare size={16} color={activeTab === 'chat' ? '#818cf8' : undefined} />
-                    <span>AI Analyst Chat</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('preview')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '10px 18px',
-                      background: 'transparent',
-                      border: 'none',
-                      borderBottom: `2px solid ${activeTab === 'preview' ? 'var(--accent-primary)' : 'transparent'}`,
-                      color: activeTab === 'preview' ? 'var(--text-primary)' : 'var(--text-muted)',
-                      fontWeight: activeTab === 'preview' ? 600 : 500,
-                      fontSize: '0.9rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <Table size={16} color={activeTab === 'preview' ? '#818cf8' : undefined} />
-                    <span>Data Preview & Schema</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('clean')}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '10px 18px',
-                      background: 'transparent',
-                      border: 'none',
-                      borderBottom: `2px solid ${activeTab === 'clean' ? 'var(--accent-primary)' : 'transparent'}`,
-                      color: activeTab === 'clean' ? 'var(--text-primary)' : 'var(--text-muted)',
-                      fontWeight: activeTab === 'clean' ? 600 : 500,
-                      fontSize: '0.9rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <Wand2 size={16} color={activeTab === 'clean' ? '#818cf8' : undefined} />
-                    <span>Cleaning Studio</span>
+                    ×
                   </button>
                 </div>
+              )}
 
-                {/* Tab Views */}
-                {activeTab === 'chat' && (
+              {/* View 1: Master Business Dashboard Builder (Centerpiece) */}
+              {activeTab === 'dashboard' && (
+                <BusinessDashboard
+                  profile={profile}
+                  filename={filename}
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                  isLoading={isLoading}
+                  onOpenReport={handleOpenReport}
+                  onSwitchToSpreadsheet={() => setActiveTab('preview')}
+                />
+              )}
+
+              {/* View 2: Fullscreen Ask AI Analyst Chat */}
+              {activeTab === 'chat' && (
+                <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
                   <ChatInterface
                     messages={messages}
                     onSendMessage={handleSendMessage}
                     isLoading={isLoading}
                     hasDataset={!!datasetId}
                   />
-                )}
+                </div>
+              )}
 
-                {activeTab === 'preview' && (
-                  <DataPreviewTable profile={profile} filename={filename} />
-                )}
+              {/* View 3: Spreadsheets Data Preview & Schema */}
+              {activeTab === 'preview' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <UploadSection
+                    onFileUpload={handleFileUpload}
+                    onLoadSample={handleLoadSample}
+                    isLoading={isLoading}
+                    currentFilename={filename}
+                    availableSheets={availableSheets}
+                    selectedSheet={selectedSheet}
+                    onSelectSheet={handleSelectSheet}
+                  />
+                  {profile && <DataPreviewTable profile={profile} filename={filename} />}
+                </div>
+              )}
 
-                {activeTab === 'clean' && (
+              {/* View 4: Cleaning Studio */}
+              {activeTab === 'clean' && profile && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <KPIOverview
+                    profile={profile}
+                    onQuickCleanDuplicates={() => handleClean([{ op: 'drop_duplicates' }])}
+                    isCleaning={isCleaning}
+                  />
                   <CleaningStudio
                     profile={profile}
                     onClean={handleClean}
                     isCleaning={isCleaning}
                   />
-                )}
-              </>
-            )}
-          </>
-        )}
-      </main>
+                </div>
+              )}
+            </main>
+          </div>
+        </div>
+      )}
 
-      {/* Auth Modal */}
+      {/* Global Modals */}
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={(_, loggedInUser) => setUser(loggedInUser)}
       />
 
-      {/* Report Modal */}
       <ReportModal
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}
@@ -397,25 +539,29 @@ export const App: React.FC = () => {
         datasetId={datasetId || ''}
       />
 
-      {/* Global SaaS Footer */}
-      <footer style={{
-        padding: '24px 28px',
-        borderTop: '1px solid var(--border-subtle)',
-        background: 'rgba(8, 11, 17, 0.95)',
-        textAlign: 'center',
-        fontSize: '0.8rem',
-        color: 'var(--text-muted)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '8px' }}>
-          <button onClick={() => setCurrentView('landing')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Product</button>
-          <button onClick={() => setCurrentView('pricing')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Pricing</button>
-          <button onClick={() => setCurrentView('privacy')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Privacy & Security</button>
-          <button onClick={() => setCurrentView('contact')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Support</button>
-        </div>
-        <div>
-          DataPilot AI &bull; Built for Autonomous Spreadsheet Intelligence &bull; Deterministic Python Pandas Compute Engine
-        </div>
-      </footer>
+      {/* Global SaaS Footer on non-workspace pages */}
+      {currentView !== 'workspace' && (
+        <footer
+          style={{
+            padding: '24px 28px',
+            borderTop: '1px solid var(--border-subtle)',
+            background: 'var(--bg-card)',
+            textAlign: 'center',
+            fontSize: '0.8rem',
+            color: 'var(--text-muted)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', marginBottom: '8px' }}>
+            <button onClick={() => setCurrentView('landing')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Product</button>
+            <button onClick={() => setCurrentView('pricing')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Pricing</button>
+            <button onClick={() => setCurrentView('privacy')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Security & Zero Retention</button>
+            <button onClick={() => setCurrentView('contact')} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Developer API & Support</button>
+          </div>
+          <div>
+            DataPilot AI &bull; Autonomous Spreadsheet Intelligence &bull; Powered by Deterministic Python Pandas Engine
+          </div>
+        </footer>
+      )}
     </div>
   )
 }
