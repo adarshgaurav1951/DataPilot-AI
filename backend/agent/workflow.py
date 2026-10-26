@@ -127,14 +127,34 @@ def router_node(state: AgentState) -> AgentState:
                 break
 
         agg_func = "sum"
-        if "average" in query or "mean" in query or "avg" in query:
+        if "median" in query:
+            agg_func = "median"
+        elif "minimum" in query or "min " in query or query.endswith(" min"):
+            agg_func = "min"
+        elif "maximum" in query or "max " in query or query.endswith(" max"):
+            agg_func = "max"
+        elif "average" in query or "mean" in query or "avg" in query:
             agg_func = "mean"
         elif "count" in query or "how many" in query or "number of" in query:
             agg_func = "count"
-        elif "highest" in query or "max" in query or "most" in query:
+        elif "highest" in query or "most" in query:
             agg_func = "sum"
-        elif "lowest" in query or "min" in query or "least" in query:
+        elif "lowest" in query or "least" in query:
             agg_func = "sum"
+
+        # Determine sorting direction: descending for top/highest, ascending for bottom/lowest/least/worst
+        sort_desc = True
+        if any(k in query for k in ["bottom", "lowest", "least", "worst", "min", "minimum"]):
+            sort_desc = False
+
+        # Extract top_n if specified in query (e.g. "top 3", "bottom 5", "first 10")
+        top_n = 10
+        n_match = re.search(r"\b(?:top|bottom|first|last|lowest|highest)\s+(\d+)\b", query)
+        if n_match:
+            try:
+                top_n = int(n_match.group(1))
+            except ValueError:
+                top_n = 10
 
         # Check for channel/category filters
         filters = {}
@@ -152,8 +172,8 @@ def router_node(state: AgentState) -> AgentState:
                     "metric_col": target_metric,
                     "group_by_cols": [target_group],
                     "agg_func": agg_func,
-                    "sort_desc": True,
-                    "top_n": 10,
+                    "sort_desc": sort_desc,
+                    "top_n": top_n,
                     "filters": filters if filters else None,
                 },
             })
@@ -325,6 +345,18 @@ def synthesizer_node(state: AgentState) -> AgentState:
                 parts.append(f"- **Missing Values Detected**: {missing_str}")
             else:
                 parts.append("- **Missing Values**: 0 missing values across all columns (100% clean).")
+
+            # Outlier report synthesis
+            outliers = out.get("outliers_report", {})
+            flagged = [
+                f"{col}: {info.get('outlier_count')} outliers ({info.get('outlier_pct')}% of rows, samples: {info.get('sample_outliers', [])})"
+                for col, info in outliers.items()
+                if info.get("outlier_count", 0) > 0
+            ]
+            if flagged:
+                parts.append(f"- **Statistical Outliers Flagged**: {'; '.join(flagged)}")
+            elif "outliers_report" in out:
+                parts.append("- **Statistical Outliers**: 0 anomalies detected.")
 
     if rag_sources:
         parts.append("\n### Reference Documentation Citations")

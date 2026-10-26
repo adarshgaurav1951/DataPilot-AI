@@ -93,3 +93,77 @@ def test_agent_data_health_audit(setup_data):
 
     assert result["intent"] == "profile"
     assert "20 rows" in result["final_response"] or "Dimensions" in result["final_response"]
+
+
+def test_agent_compare_groups(setup_data):
+    dataset_id, profile = setup_data
+
+    initial_state = {
+        "dataset_id": dataset_id,
+        "user_query": "Compare revenue and profit across region",
+        "dataset_profile": profile,
+        "intent": "",
+        "tool_calls": [],
+        "tool_results": [],
+        "chart_spec": None,
+        "rag_sources": [],
+        "final_response": "",
+    }
+
+    result = agent_graph.invoke(initial_state)
+
+    assert result["intent"] == "comparison"
+    assert len(result["tool_calls"]) > 0
+    assert result["tool_calls"][0]["tool"] == "compare_groups"
+    assert result["tool_results"][0]["status"] == "success"
+    assert "Comparative Group Analysis" in result["final_response"]
+    assert "North" in result["final_response"]
+
+
+def test_agent_filtered_aggregation(setup_data):
+    dataset_id, profile = setup_data
+
+    initial_state = {
+        "dataset_id": dataset_id,
+        "user_query": "What is the revenue by region for Online orders?",
+        "dataset_profile": profile,
+        "intent": "",
+        "tool_calls": [],
+        "tool_results": [],
+        "chart_spec": None,
+        "rag_sources": [],
+        "final_response": "",
+    }
+
+    result = agent_graph.invoke(initial_state)
+
+    assert result["intent"] == "aggregation"
+    assert result["tool_calls"][0]["tool"] == "aggregate_metric"
+    assert result["tool_calls"][0]["args"]["filters"] == {"sales_channel": "Online"}
+    assert result["tool_results"][0]["status"] == "success"
+    assert "Analysis: Revenue by Region" in result["final_response"]
+
+
+def test_agent_average_metric(setup_data):
+    dataset_id, profile = setup_data
+
+    initial_state = {
+        "dataset_id": dataset_id,
+        "user_query": "What is the average profit by region?",
+        "dataset_profile": profile,
+        "intent": "",
+        "tool_calls": [],
+        "tool_results": [],
+        "chart_spec": None,
+        "rag_sources": [],
+        "final_response": "",
+    }
+
+    result = agent_graph.invoke(initial_state)
+
+    assert result["intent"] == "aggregation"
+    assert result["tool_calls"][0]["tool"] == "aggregate_metric"
+    assert result["tool_calls"][0]["args"]["agg_func"] == "mean"
+    assert result["tool_results"][0]["status"] == "success"
+    assert "Analysis: Profit by Region" in result["final_response"]
+

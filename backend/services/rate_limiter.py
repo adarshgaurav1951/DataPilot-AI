@@ -33,7 +33,12 @@ rate_limiter = InMemoryRateLimiter(requests_per_minute=settings.RATE_LIMIT_REQUE
 
 
 async def check_rate_limit(request: Request):
-    client_ip = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else "unknown"
+
     if rate_limiter.is_rate_limited(client_ip):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
